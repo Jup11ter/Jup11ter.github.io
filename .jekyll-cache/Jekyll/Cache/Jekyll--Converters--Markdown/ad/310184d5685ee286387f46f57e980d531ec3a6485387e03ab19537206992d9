@@ -1,0 +1,141 @@
+I"�Z<p>[toc]</p>
+<h1 id="浅谈nlp-文本分类情感分析-任务中的文本预处理工作">浅谈NLP 文本分类/情感分析 任务中的文本预处理工作</h1>
+<h2 id="前言">前言</h2>
+<p>之所以心血来潮想写这篇博客，是因为最近在关注NLP文本分类这类任务中的文本预处理工作，想总结一下自己的所学所想，老规矩，本博文记载<strong>仅供备忘与参考</strong>，不具备学术价值，本文默认使用python3编程（代码能力是屎山级别的，请谅解），默认文本为英文，代码主要使用Pytorch（博主老笨蛋了，之前一直执迷不悟用Keras，现在刚刚开始用torch，怎么说呢，挺香的 XD）</p>
+
+<h2 id="nlp相关的文本预处理">NLP相关的文本预处理</h2>
+<p>NLP文本预处理一直是一个很受关注的问题，当下最常用的文本预处理工具当属nltk，功能统一，api也很简单，安装的话直接输入：</p>
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>pip <span class="nb">install </span>nltk
+python#进入python
+import nltk
+nltk.download<span class="o">()</span><span class="c">#下载需要的内容</span>
+</code></pre></div></div>
+<p>一般来讲，最简单最常见的预处理就是把一整段文本分词化（Tokenize），对于一段文本（Sentence），可以直接调用nltk库功能将其分词化，返回结果为一个词表（word list）。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">nltk</span><span class="c1"># 为方便，任何import都只在所有代码块中出现一遍，以后的也同理
+</span><span class="n">word_list</span><span class="o">=</span><span class="n">nltk</span><span class="p">.</span><span class="n">word_tokenize</span><span class="p">(</span><span class="n">sentence</span><span class="p">)</span>
+</code></pre></div></div>
+<p>一般来讲在预处理数据的时候还会选择去除标点以及不需要的url等等内容，因此我在自己做实验的时候选择使用以下配置来作为基础的预处理方法。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">string</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="n">PUNCT_TO_REMOVE</span> <span class="o">=</span> <span class="n">string</span><span class="p">.</span><span class="n">punctuation</span>
+<span class="n">url_pattern</span> <span class="o">=</span> <span class="n">re</span><span class="p">.</span><span class="nb">compile</span><span class="p">(</span><span class="sa">r</span><span class="s">'https?://\S+|www\.\S+'</span><span class="p">)</span>
+<span class="n">sentence</span><span class="o">=</span><span class="n">url_pattern</span><span class="p">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s">''</span><span class="p">,</span> <span class="n">sentence</span><span class="p">)</span>
+<span class="c1">#remove punc
+</span><span class="n">sentence</span><span class="o">=</span><span class="n">sentence</span><span class="p">.</span><span class="n">translate</span><span class="p">(</span><span class="nb">str</span><span class="p">.</span><span class="n">maketrans</span><span class="p">(</span><span class="s">''</span><span class="p">,</span> <span class="s">''</span><span class="p">,</span> <span class="n">PUNCT_TO_REMOVE</span><span class="p">))</span>
+<span class="n">tmp_word_list</span><span class="o">=</span><span class="n">nltk</span><span class="p">.</span><span class="n">word_tokenize</span><span class="p">(</span><span class="n">sentence</span><span class="p">)</span>
+<span class="n">word_list</span><span class="o">=</span><span class="p">[]</span>
+<span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">tmp_word_list</span><span class="p">:</span>    
+    <span class="c1">#lower       
+</span>    <span class="n">word</span><span class="o">=</span><span class="n">word</span><span class="p">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">word_list</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">word</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>事实上，文本预处理的方法是非常多样的，根据下边代码块中的参考内容链接，你可以找到各种各样数十种有针对性或者泛用的预处理方法，有的是为了处理Twitter中的一些tag，有的是是为了对文本进行词根化，有的是为了将双重否定转换成肯定……总而言之，<strong>一切预处理方法都是为了使得NLP任务更好地被执行，使得数据集更容易也更好地被训练。因此在我们针对NLP任务选择预处理方法时也应当注意选择合适的方法。</strong>如果我们在一个新闻数据集中使用去除Twitter中tag的预处理方法进行处理的话只会浪费时间。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># 参考链接
+</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">medium</span><span class="p">.</span><span class="n">com</span><span class="o">/</span><span class="n">sciforce</span><span class="o">/</span><span class="n">text</span><span class="o">-</span><span class="n">preprocessing</span><span class="o">-</span><span class="k">for</span><span class="o">-</span><span class="n">nlp</span><span class="o">-</span><span class="ow">and</span><span class="o">-</span><span class="n">machine</span><span class="o">-</span><span class="n">learning</span><span class="o">-</span><span class="n">tasks</span><span class="o">-</span><span class="mf">3e077</span><span class="n">aa4946e</span>
+<span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">towardsdatascience</span><span class="p">.</span><span class="n">com</span><span class="o">/</span><span class="nb">all</span><span class="o">-</span><span class="n">you</span><span class="o">-</span><span class="n">need</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">know</span><span class="o">-</span><span class="n">about</span><span class="o">-</span><span class="n">text</span><span class="o">-</span><span class="n">preprocessing</span><span class="o">-</span><span class="k">for</span><span class="o">-</span><span class="n">nlp</span><span class="o">-</span><span class="ow">and</span><span class="o">-</span><span class="n">machine</span><span class="o">-</span><span class="n">learning</span><span class="o">-</span><span class="n">bc1c5765ff67</span>
+<span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">towardsdatascience</span><span class="p">.</span><span class="n">com</span><span class="o">/</span><span class="n">nlp</span><span class="o">-</span><span class="n">text</span><span class="o">-</span><span class="n">preprocessing</span><span class="o">-</span><span class="n">a</span><span class="o">-</span><span class="n">practical</span><span class="o">-</span><span class="n">guide</span><span class="o">-</span><span class="ow">and</span><span class="o">-</span><span class="n">template</span><span class="o">-</span><span class="n">d80874676e79</span>
+<span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">www</span><span class="p">.</span><span class="n">kaggle</span><span class="p">.</span><span class="n">com</span><span class="o">/</span><span class="n">sudalairajkumar</span><span class="o">/</span><span class="n">getting</span><span class="o">-</span><span class="n">started</span><span class="o">-</span><span class="k">with</span><span class="o">-</span><span class="n">text</span><span class="o">-</span><span class="n">preprocessing</span>
+<span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">www</span><span class="p">.</span><span class="n">kaggle</span><span class="p">.</span><span class="n">com</span><span class="o">/</span><span class="n">theoviel</span><span class="o">/</span><span class="n">improve</span><span class="o">-</span><span class="n">your</span><span class="o">-</span><span class="n">score</span><span class="o">-</span><span class="k">with</span><span class="o">-</span><span class="n">text</span><span class="o">-</span><span class="n">preprocessing</span><span class="o">-</span><span class="n">v2</span>
+<span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">medium</span><span class="p">.</span><span class="n">com</span><span class="o">/</span><span class="n">datadriveninvestor</span><span class="o">/</span><span class="n">data</span><span class="o">-</span><span class="n">cleaning</span><span class="o">-</span><span class="n">character</span><span class="o">-</span><span class="n">encoding</span><span class="o">-</span><span class="n">b4e0e9c65b2a</span>
+<span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="p">.</span><span class="n">com</span><span class="o">/</span><span class="n">Deffro</span><span class="o">/</span><span class="n">text</span><span class="o">-</span><span class="n">preprocessing</span><span class="o">-</span><span class="n">techniques</span><span class="o">/</span><span class="n">blob</span><span class="o">/</span><span class="n">master</span><span class="o">/</span><span class="n">techniques</span><span class="p">.</span><span class="n">py</span>
+</code></pre></div></div>
+<p>当然，很多预处理方法在常见的场合并不适用，例如文本中<a href="https://www.aclweb.org/anthology/W18-6231.pdf">表情处理</a>在Reuters新闻分类以及IMDB情感分析等常用任务上就没有什么用处。</p>
+
+<p>为此我总结了5个<strong>我认为</strong>常用的预处理方法在下面的代码中</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># 1. stem词根化
+</span><span class="n">porter</span> <span class="o">=</span> <span class="n">nltk</span><span class="p">.</span><span class="n">stem</span><span class="p">.</span><span class="n">porter</span><span class="p">.</span><span class="n">PorterStemmer</span><span class="p">()</span>
+<span class="n">tmp_word_list</span><span class="o">=</span><span class="n">nltk</span><span class="p">.</span><span class="n">word_tokenize</span><span class="p">(</span><span class="n">sentence</span><span class="p">)</span>
+<span class="n">word_list</span><span class="o">=</span><span class="p">[]</span>
+<span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">tmp_word_list</span><span class="p">:</span>        
+    <span class="n">word</span><span class="o">=</span><span class="n">porter</span><span class="p">.</span><span class="n">stem</span><span class="p">(</span><span class="n">word</span><span class="p">)</span>
+    <span class="n">word_list</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">word</span><span class="p">)</span>
+
+<span class="c1"># 2. spell check拼写检查
+# pip install pyspellchecker
+</span><span class="kn">from</span> <span class="nn">spellchecker</span> <span class="kn">import</span> <span class="n">SpellChecker</span>
+<span class="n">spell</span><span class="o">=</span><span class="n">SpellChecker</span><span class="p">()</span>
+<span class="n">tmp_word_list</span><span class="o">=</span><span class="n">nltk</span><span class="p">.</span><span class="n">word_tokenize</span><span class="p">(</span><span class="n">sentence</span><span class="p">)</span>
+<span class="n">word_list</span><span class="o">=</span><span class="p">[]</span>
+<span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">tmp_word_list</span><span class="p">:</span>    
+    <span class="c1">#lower             
+</span>    <span class="n">misspelled_words</span> <span class="o">=</span> <span class="n">spell</span><span class="p">.</span><span class="n">unknown</span><span class="p">(</span><span class="n">word</span><span class="p">.</span><span class="n">split</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">misspelled_words</span><span class="p">:</span>
+        <span class="n">word_list</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">spell</span><span class="p">.</span><span class="n">correction</span><span class="p">(</span><span class="n">word</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">word_list</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">word</span><span class="p">)</span>
+
+<span class="c1"># 3. negation否定词替换
+</span><span class="n">token</span><span class="o">=</span><span class="n">nltk</span><span class="p">.</span><span class="n">word_tokenize</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+<span class="n">word_list</span><span class="o">=</span><span class="p">[]</span>  
+<span class="n">i</span><span class="p">,</span> <span class="n">l</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+<span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">l</span><span class="p">:</span>
+    <span class="n">word</span> <span class="o">=</span> <span class="n">token</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">word</span> <span class="o">==</span> <span class="s">'not'</span> <span class="ow">and</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span> <span class="o">&lt;</span> <span class="n">l</span><span class="p">:</span>
+        <span class="n">ant</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span><span class="n">token</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">ant</span><span class="p">:</span>
+            <span class="n">word_list</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">ant</span><span class="p">)</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">2</span>
+            <span class="k">continue</span>
+    <span class="n">word_list</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">word</span><span class="p">)</span>
+    <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+
+<span class="k">def</span> <span class="nf">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">word</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="s">""" Creates a set of all antonyms for the word and if there is only one antonym, it returns it """</span>
+    <span class="n">antonyms</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">syn</span> <span class="ow">in</span> <span class="n">nltk</span><span class="p">.</span><span class="n">corpus</span><span class="p">.</span><span class="n">wordnet</span><span class="p">.</span><span class="n">synsets</span><span class="p">(</span><span class="n">word</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="n">pos</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">lemma</span> <span class="ow">in</span> <span class="n">syn</span><span class="p">.</span><span class="n">lemmas</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">antonym</span> <span class="ow">in</span> <span class="n">lemma</span><span class="p">.</span><span class="n">antonyms</span><span class="p">():</span>
+                <span class="n">antonyms</span><span class="p">.</span><span class="n">add</span><span class="p">(</span><span class="n">antonym</span><span class="p">.</span><span class="n">name</span><span class="p">())</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">antonyms</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">antonyms</span><span class="p">.</span><span class="n">pop</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">None</span>   
+
+<span class="c1"># 4. stop word 停用词替换
+</span><span class="n">stops_list</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">nltk</span><span class="p">.</span><span class="n">corpus</span><span class="p">.</span><span class="n">stopwords</span><span class="p">.</span><span class="n">words</span><span class="p">(</span><span class="s">'english'</span><span class="p">))</span>
+<span class="n">tmp_word_list</span><span class="o">=</span><span class="n">nltk</span><span class="p">.</span><span class="n">word_tokenize</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+<span class="n">word_list</span><span class="o">=</span><span class="p">[]</span>
+<span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">tmp_word_list</span><span class="p">:</span>    
+    <span class="k">if</span> <span class="n">word</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">stops_list</span><span class="p">:</span>
+        <span class="n">word_list</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">word</span><span class="p">)</span>
+
+<span class="c1"># 5. contraction 连接词分离
+# pip install contractions
+</span><span class="kn">import</span> <span class="nn">contractions</span> <span class="k">as</span> <span class="n">ctr</span>
+<span class="n">tmp_word_list</span><span class="o">=</span><span class="n">token</span><span class="p">.</span><span class="n">split</span><span class="p">(</span><span class="s">' '</span><span class="p">)</span>
+<span class="n">word_list</span><span class="o">=</span><span class="p">[]</span>
+<span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">tmp_word_list</span><span class="p">:</span>    
+    <span class="n">word</span><span class="o">=</span><span class="n">ctr</span><span class="p">.</span><span class="n">fix</span><span class="p">(</span><span class="n">word</span><span class="p">)</span>
+    <span class="n">tmp</span><span class="o">=</span><span class="n">nltk</span><span class="p">.</span><span class="n">word_tokenize</span><span class="p">(</span><span class="n">word</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">tmp</span><span class="p">:</span>
+        <span class="n">word_list</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>  
+
+</code></pre></div></div>
+
+<h2 id="对bert模型finetune阶段数据集预处理效果分析">对BERT模型FineTune阶段数据集预处理效果分析</h2>
+<p><a href="https://arxiv.org/pdf/1810.04805.pdf">BERT</a>这类transformer预处理模型的特点是该类模型首先会在一个较大的语料库上进行训练，随后训练好的预处理模型在用户使用时只需要做一个简单的FineTune即可获得较好的效果。关于BERT网络的原理与分析，可以参考其他专业人士的<a href="https://blog.csdn.net/triplemeng/article/details/83053419?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.channel_param&amp;depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.channel_param">博客</a>详解，在此我不再赘述。</p>
+
+<p>值得一提的是近期博主尝试了一下在BERT模型Finetune环节加入数据集的预处理，试图进一步改善模型的训练效果。博主尝试了一下在IMDB数据集上进行实验，实验使用5-fold交叉验证，严格控制了每个batch中的数据顺序，模型加载自transformer库的“bert-base-uncased”模型。预处理方法使用了上文提到的basic,stem,contraction,negation,stop五种方法的不同组合方式，包括‘basic+xx‘和‘all-xx’。其中“+”代表两种方法一同使用，“-”表示所有方法单独排除某种方法再一起使用。实验中记录最优val_loss与val_accuracy，并在5-fold交叉验证后进行平均，结果如下图所示。</p>
+
+<p>| |loss|accuracy|
+|–|–|–|
+|no preprocess|<strong>0.175</strong>|<strong>0.934</strong>|
+|basic|0.186|0.927|
+|basic+stem|0.240|0.902|
+|basic+contraction|0.182|0.933|
+|basic+stop|0.227|0.907|
+|basic+negation|0.194|0.931
+|all|<strong>0.532</strong>|<strong>0.654</strong>|
+|all-stem|0.223|0.916|
+|all-stop|0.316|0.831|
+|all-negation|0.605|0.581|
+|all-contraction|0.257|0.894|
+令我感到十分尴尬的是，所有预处理一起使用的效果非常之差，而加入预处理后的最好效果也只能说几乎和不做预处理持平……而在我做实验之前的认知里，参考关于ML模型的<a href="https://www.sciencedirect.com/science/article/pii/S0957417418303683?casa_token=jo_i_0M7V7YAAAAA:eT8U_Qte4aYH30ZSB5djYmwJpNPDn7OCydgOynhFMzLlzKeGWJbpO-eYzPLD7-0pUcP6PlaNhZI">预处理研究</a>，预处理理应对语言模型的训练产生一定的正面影响——起码不应该是如此负面的效果……
+在我与几个朋友讨论后，我们认为造成该现象的原因可能与模型的预训练相关，<strong>BERT原始模型的预训练为保证学到上下文语义联系，数据集是未经过任何与处理的，而我在FineTune时加入预处理可能破坏了此时数据集的上下文文本关系，进而导致训练效果变差。</strong>而对于ML模型本身未经过预训练，全靠模型在训练时自行学习上下文关系，因此合适的预处理会对训练效果带来不错的提升。</p>
+
+<p>总结，个人经验来讲，对于BERT这种预训练模型，最经济实惠的方式还是直接在原始数据集加载预训练模型进行FineTune。</p>
+
+<p>后续会再分享一些NLP预处理方面读论文想法与思考。</p>
+:ET
